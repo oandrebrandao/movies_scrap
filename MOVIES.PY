@@ -41,3 +41,18 @@ def extract (url, table_attribs):
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
         return None
+
+def transform(df):
+    ''' Essa função transforma os dados do data frame que representam números para os tipos corretos e converte as linhas da coluna 'length' para minutos
+        Parametros: df: data frame
+        Retorno: df: data frame
+        
+        This function transforms the data frame data that represents numbers to the correct types and converts the rows of the 'length' column to minutes
+        Parameters: df: data frame  
+        Return: df: data frame'''
+
+    df['release_year'] = int(df['release_year']) if df['release_year'] else None
+    df['length'] = int(df['length'].split('h')[0])*60 + int(df['length'].split('h')[1].strip('m')) if df['length'] else None
+    df['score'] = float(df['score']) if df['score'] else None
+    return df
+
