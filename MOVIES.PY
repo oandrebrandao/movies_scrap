@@ -2,7 +2,9 @@ from selenium import webdriver
 from bs4 import BeautifulSoup as bs
 import pandas as pd
 import time
-
+import mysql.connector
+ 
+ 
 url = "https://imdb.com/chart/top/"
 table_attribs = ['title', 'release_year', 'length', 'rating', 'score']
 output_path = 'imdb_top250.csv'
@@ -64,4 +66,33 @@ def transform(df):
     df['length'] = int(df['length'].split('h')[0])*60 + int(df['length'].split('h')[1].strip('m')) if df['length'] else None
     df['score'] = float(df['score']) if df['score'] else None
     return df
+
+def load_csv(df, output_path):
+    ''' Essa função salva o data frame em um arquivo csv
+        Parametros: df: data frame
+                    output_path: string
+        Retorno: None
+        
+        This function saves the data frame to a csv file
+        Parameters: df: data frame
+                    output_path: string
+        Return: None'''
+    
+    df.to_csv(output_path, index=False)
+    print(f'Data frame salvo em {output_path}')
+
+def load_db(df, sql_connection, table_name):
+    ''' Essa função salva o data frame em uma tabela de um banco de dados MySQL
+       Parametros: df: data frame
+                   sql_connection: string
+                   table_name: string
+        Retorno: None
+        
+        This function saves the data frame to a MySQL database table
+        Parameters: df: data frame
+                   sql_connection: string
+                   table_name: string
+        Return: None'''
+    
+    df.to_sql(table_name, sql_connection, if_exists ='replace',  index=False)
 
