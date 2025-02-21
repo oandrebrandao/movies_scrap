@@ -1,6 +1,7 @@
-import requests
+from selenium import webdriver
 from bs4 import BeautifulSoup as bs
 import pandas as pd
+import time
 
 url = "https://imdb.com/chart/top/"
 table_attribs = ['title', 'release_year', 'length', 'rating', 'score']
@@ -17,30 +18,38 @@ def extract (url, table_attribs):
     Parameters: url (str): URL of the site to be extracted 
                 table_attribs (list): List of strings with the names of the DataFrame columns
                 Return: df (DataFrame): DataFrame with the data extracted from the site'''
-    headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        soup = bs(response.content, 'html.parser')
-        df = pd.DataFrame(columns=table_attribs)
-        movies = soup.find_all('div', {'class': 'cli-children'}) 
-        data = []
-        for movie in movies:
-            try:
-                title = movie.find('h3', {'class':'ipc-title__text'}).text.split('.')[-1].strip() if movie.find('h3', {'class':'ipc-title__text'}) else None
-                metadata_items = movie.find_all('span',{'class':'cli-title-metadata-item'})
-                release_year = metadata_items[0].text.strip() if len(metadata_items) > 0 else None
-                length = metadata_items[1].text.strip() if len(metadata_items) > 1 else None
-                rating = metadata_items[2].text.strip() if len(metadata_items) > 2 else None
-                score = movie.find('span', {'class':'ipc-rating-star--rating'}).text.strip() if movie.find('span', {'class':'ipc-rating-star--rating'}) else None
-                data.append({'title': title, 'release_year': release_year, 'length': length, 'rating': rating, 'score': score})
-            except AttributeError as e:
-                print(f"Failed to retrieve the data. Error: {e}")
+    driver = webdriver.Chrome()
+    driver.get(url)
+    time.sleep(5)
+
+    first_height = driver.execute_script("return document.body.scrollHeight") 
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == first_height:
+            break
+        first_height = new_height
+    
+    page_source = driver.page_source
+    driver.quit()
+    soup = bs(page_source.content, 'html.parser')
+    df = pd.DataFrame(columns=table_attribs)
+    movies = soup.find_all('div', {'class': 'cli-children'}) 
+    data = []
+    for movie in movies:
+        try:
+            title = movie.find('h3', {'class':'ipc-title__text'}).text.split('.')[-1].strip() if movie.find('h3', {'class':'ipc-title__text'}) else None
+            metadata_items = movie.find_all('span',{'class':'cli-title-metadata-item'})
+            release_year = metadata_items[0].text.strip() if len(metadata_items) > 0 else None
+            length = metadata_items[1].text.strip() if len(metadata_items) > 1 else None
+            rating = metadata_items[2].text.strip() if len(metadata_items) > 2 else None
+            score = movie.find('span', {'class':'ipc-rating-star--rating'}).text.strip() if movie.find('span', {'class':'ipc-rating-star--rating'}) else None
+            data.append({'title': title, 'release_year': release_year, 'length': length, 'rating': rating, 'score': score})
+        except AttributeError as e:
+            print(f"Failed to retrieve the data. Error: {e}")
         df = pd.DataFrame(data, columns=table_attribs)
         return df
-    else:
-        print(f"Failed to retrieve the page. Status code: {response.status_code}")
-        return None
 
 def transform(df):
     ''' Essa função transforma os dados do data frame que representam números para os tipos corretos e converte as linhas da coluna 'length' para minutos
